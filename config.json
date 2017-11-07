@@ -1,0 +1,14 @@
+{
+  "learning_rate": 1e-4,
+  "lr_decay_rate": null,
+  "max_steps": 50000,
+  "train_dir": "model/",
+  "eval_dir": "eval/",
+  "test_dir": "test/",
+  "weight_decay": 5e-4,
+  "vgg16_model_path": "pretrained_model/vgg16.npy",
+  "n_classes": 5,
+  "reg": 1.0,
+  "save_every_seconds": 300,
+  "print_every": 10
+}

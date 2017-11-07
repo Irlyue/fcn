@@ -1,31 +1,35 @@
 #!/usr/bin/env python
 
-import os
 import scipy as scp
 import scipy.misc
 
-import numpy as np
 import logging
 import tensorflow as tf
 import sys
 
 import fcn16_vgg
 import utils
+import os
+
+ROOT_DIR = os.path.dirname(fcn16_vgg.__file__)
+TEST_IMAGE = os.path.join(ROOT_DIR, 'test_data/tabby_cat.png')
+MODEL_PATH = os.path.join(ROOT_DIR, 'pretrained_model/vgg16.npy')
+print(TEST_IMAGE)
+print(MODEL_PATH)
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.INFO,
                     stream=sys.stdout)
 
-from tensorflow.python.framework import ops
 
-img1 = scp.misc.imread("./test_data/tabby_cat.png")
+img1 = scp.misc.imread(TEST_IMAGE)
 
 with tf.Session() as sess:
     images = tf.placeholder("float")
     feed_dict = {images: img1}
     batch_images = tf.expand_dims(images, 0)
 
-    vgg_fcn = fcn16_vgg.FCN16VGG()
+    vgg_fcn = fcn16_vgg.FCN16VGG(vgg16_npy_path=MODEL_PATH)
     with tf.name_scope("content_vgg"):
         vgg_fcn.build(batch_images, debug=True)
 
@@ -46,5 +50,5 @@ with tf.Session() as sess:
     down_color = utils.color_image(down[0])
     up_color = utils.color_image(up[0])
 
-    scp.misc.imsave('fcn16_downsampled.png', down_color)
-    scp.misc.imsave('fcn16_upsampled.png', up_color)
+    scp.misc.imsave(os.path.join(ROOT_DIR, './test_output/fcn16_downsampled.png'), down_color)
+    scp.misc.imsave(os.path.join(ROOT_DIR, './test_output/fcn16_upsampled.png'), up_color)
