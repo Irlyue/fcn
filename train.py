@@ -5,6 +5,7 @@ import time
 import sys
 import logging as log
 
+# change the log configuration to log onto disk file
 log.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                 level=log.INFO,
                 stream=sys.stdout)
@@ -71,6 +72,7 @@ def train(recover):
                 ckpt = tf.train.get_checkpoint_state(FLAGS['train_dir'])
                 if ckpt and ckpt.model_checkpoint_path:
                     step = int(ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1])
+                    # update the step of the hook object
                     hooker._step = step
                     log.info('Model-%d recovered successfully!' % (step, ))
                 else:
