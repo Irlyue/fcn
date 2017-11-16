@@ -2,16 +2,18 @@ import tensorflow as tf
 import json
 import fcn
 import time
-import sys
-import logging as log
-
-# change the log configuration to log onto disk file
-log.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                level=log.INFO,
-                stream=sys.stdout)
+import utils
+import logger
+import argparse
 
 # load the configuration file
 FLAGS = json.load(open('config.json'))
+log = logger.create(__name__)
+log.info(FLAGS)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--recover', type=lambda x: x.lower() != "false", default=True,
+                    help='Whether to recover from last run.')
 
 
 def input_fn():
@@ -83,13 +85,23 @@ def train(recover):
 
 
 def main(recover):
-    if not recover:
-        log.info('Training from scratch...')
-        if tf.gfile.Exists(FLAGS['train_dir']):
-            log.warning('"%s" exists and will be deleted!' % (FLAGS['train_dir'],))
-            tf.gfile.DeleteRecursively(FLAGS['train_dir'])
-    train(recover)
+    if recover:
+        train_from_recover()
+    else:
+        train_from_scratch()
+
+
+def train_from_scratch():
+    log.info(json.dumps(FLAGS, indent=2, sort_keys=True))
+    utils.delete_if_exists_and_create(FLAGS['train_dir'])
+    utils.maybe_download(FLAGS['vgg16_url'], FLAGS['vgg16_dir'])
+    train(recover=False)
+
+
+def train_from_recover():
+    train(recover=True)
 
 
 if __name__ == '__main__':
-    main(recover=True)
+    args = parser.parse_args()
+    main(recover=args.recover)
