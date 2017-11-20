@@ -29,7 +29,7 @@ def train(recover):
     :return:
     """
     with tf.Graph().as_default():
-        global_step = tf.contrib.framework.get_or_create_global_step()
+        global_step = tf.train.get_or_create_global_step()
         net = fcn.FCN(input_fn,
                       n_classes=FLAGS['n_classes'],
                       lr=FLAGS['learning_rate'],
@@ -41,55 +41,34 @@ def train(recover):
         data = inputs.load_data('data/dataset/img/', 'data/dataset/cls/')
         log.info('Data loaded successfully, %d items in total!' % len(data))
 
-        class _MyHooker(tf.train.SessionRunHook):
-            def __init__(self):
-                pass
+        writer = tf.summary.FileWriter(FLAGS['train_dir'])
+        writer.add_graph(tf.get_default_graph())
+        saver = tf.train.Saver()
 
-            def begin(self):
-                self._step = -1
-                self._tic = time.time()
-
-            def before_run(self, run_context):
-                self._step += 1
-                return tf.train.SessionRunArgs(net.loss_op)
-
-            def after_run(self, run_context, run_values):
-                if self._step % FLAGS['print_every'] == 0:
-                    toc = time.time()
-                    duration = toc - self._tic
-                    self._tic = toc
-                    loss_value = run_values.results
-                    duration_per_step = duration / FLAGS['print_every']
-                    fmt_spec = "step %d, loss %.3f, %.2fsec"
-                    log.info(fmt_spec % (self._step, loss_value, duration_per_step))
-
-        hooker = _MyHooker()
-        with tf.train.MonitoredTrainingSession(
-            checkpoint_dir=FLAGS['train_dir'],
-            save_checkpoint_secs=FLAGS['save_every_seconds'],
-            hooks=[
-                tf.train.NanTensorHook(net.loss_op),
-                tf.train.StopAtStepHook(num_steps=FLAGS['max_steps']),
-                _MyHooker()
-            ]
-        ) as sess:
+        with tf.Session() as sess:
             if recover:
-                log.info('Trying to recover from last run...')
-                ckpt = tf.train.get_checkpoint_state(FLAGS['train_dir'])
-                if ckpt and ckpt.model_checkpoint_path:
-                    step = int(ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1])
-                    # update the step of the hook object
-                    hooker._step = step
-                    log.info('Model-%d recovered successfully!' % (step, ))
-                else:
-                    log.info('No checkpoint file found!')
-            while not sess.should_stop():
-                log.info('Begin training...')
-                for image, label in inputs.yield_one_example(data, n_loops=FLAGS['n_loops'], shuffle=True):
-                    # span dim
-                    image = image[None, :, :, :]
-                    feed_dict = {net.images: image, net.labels: label}
-                    sess.run(net.train_op, feed_dict)
+                log.info('Restoring model from last run...')
+                tic = time.time()
+                saver.restore(sess, FLAGS['train_dir'] + '\model.ckpt')
+                toc = time.time()
+                log.info('Done in %.3fs' % (toc - tic,))
+            else:
+                tf.global_variables_initializer().run()
+            log.info('Begin training...')
+            for step, (image, label) in enumerate(inputs.yield_one_example(data, FLAGS['n_loops'], True)):
+                # span dim
+                image = image[None, :, :, :]
+                feed_dict = {net.images: image, net.labels: label}
+                sess.run(net.train_op, feed_dict)
+                if step % FLAGS['print_every'] == 0:
+                    loss_val = sess.run(net.loss_op, feed_dict)
+                    print('step %d, loss %.3f' % (step, loss_val))
+                if step % FLAGS['save_every'] == 0:
+                    log.info('Saving model in step %d...' % step)
+                    tic = time.time()
+                    saver.save(sess, FLAGS['train_dir'] + '\model.ckpt')
+                    toc = time.time()
+                    log.info('Done in %.3f' % (toc - tic,))
 
 
 def main(recover):
