@@ -1,4 +1,3 @@
-import tensorflow as tf
 import json
 import fcn
 import time
@@ -6,10 +5,12 @@ import utils
 import logger
 import argparse
 
+import inputs
+import tensorflow as tf
+
 # load the configuration file
 FLAGS = json.load(open('config.json'))
 log = logger.create(__name__)
-log.info(FLAGS)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--recover', type=lambda x: x.lower() != "false", default=True,
@@ -18,7 +19,7 @@ parser.add_argument('--recover', type=lambda x: x.lower() != "false", default=Tr
 
 def input_fn():
     images = tf.placeholder(tf.float32, shape=[1, None, None, 3], name='images')
-    labels = tf.placeholder(tf.int32, shape=[1, None, None, FLAGS['n_classes']], name='labels')
+    labels = tf.placeholder(tf.int32, shape=[None, None], name='labels')
     return images, labels
 
 
@@ -36,6 +37,9 @@ def train(recover):
                       type_='fcn8',
                       reg=FLAGS['reg'],
                       global_step=global_step)
+
+        data = inputs.load_data('data/dataset/img/', 'data/dataset/cls/')
+        log.info('Data loaded successfully, %d items in total!' % len(data))
 
         class _MyHooker(tf.train.SessionRunHook):
             def __init__(self):
@@ -79,9 +83,13 @@ def train(recover):
                     log.info('Model-%d recovered successfully!' % (step, ))
                 else:
                     log.info('No checkpoint file found!')
-            # while not sess.should_stop():
-            #     log.info('Begin training...')
-            #     sess.run(net.train_op)
+            while not sess.should_stop():
+                log.info('Begin training...')
+                for image, label in inputs.yield_one_example(data, n_loops=FLAGS['n_loops'], shuffle=True):
+                    # span dim
+                    image = image[None, :, :, :]
+                    feed_dict = {net.images: image, net.labels: label}
+                    sess.run(net.train_op, feed_dict)
 
 
 def main(recover):

@@ -20,6 +20,7 @@ def create(name, level=logging.INFO, handlers=('stdout', 'file')):
         log: logging.Logger
     """
     log = logging.getLogger(name)
+    log.propagate = False
     log.setLevel(level)
     for handler in handlers:
         log.addHandler(create_handler(handler))
