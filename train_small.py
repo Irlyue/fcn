@@ -23,7 +23,7 @@ with tf.Graph().as_default():
                   reg=FLAGS['reg'],
                   global_step=global_step)
 
-    data = inputs.load_data('data/dataset/img/', 'data/dataset/cls/')
+    data = inputs.load_data(FLAGS['data_image_path'], FLAGS['data_label_path'])
     with tf.Session() as sess:
         idx = 0
         image, label = data[idx]

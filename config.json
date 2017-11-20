@@ -12,6 +12,8 @@
   "vgg16_dir": "pretrained_model/",
   "vgg16_model_path": "pretrained_model/vgg16.npy",
   "vgg16_url": "ftp://mi.eng.cam.ac.uk/pub/mttt2/models/vgg16.npy",
+  "data_image_path": "data/dataset/img/",
+  "data_label_path": "data/dataset/cls",
   "n_classes": 16,
   "reg": 1.0,
   "save_every_seconds": 300,
