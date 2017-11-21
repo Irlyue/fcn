@@ -1,6 +1,7 @@
 import tensorflow as tf
 import sys
 import os
+import json
 import urllib.request
 
 
@@ -36,6 +37,22 @@ def delete_if_exists_and_create(folder):
 def create_if_not_exists(folder):
     if not tf.gfile.Exists(folder):
         os.makedirs(folder)
+
+
+def load_configure():
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+        return config
+
+
+def restore_model(sess, model_dir):
+    global_step = None
+    saver = tf.train.Saver()
+    ckpt = tf.train.get_checkpoint_state(model_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        global_step = int(ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1])
+        saver.restore(sess, ckpt.model_checkpoint_path)
+    return global_step
 
 
 def maybe_download(url, dest_dir):
