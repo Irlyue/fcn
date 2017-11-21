@@ -3,6 +3,7 @@
   "lr_decay_rate": null,
   "max_steps": 1,
   "n_loops": 10,
+  "n_evals": 40,
   "train_dir": "model/",
   "eval_dir": "eval/",
   "test_dir": "test/",
@@ -17,6 +18,7 @@
   "n_classes": 16,
   "reg": 1.0,
   "save_every_seconds": 300,
+  "run_once": false,
   "print_every": 1,
   "save_every": 50
 }

@@ -18,12 +18,6 @@ parser.add_argument('--recover', type=lambda x: x.lower() != "false", default=Tr
                     help='Whether to recover from last run.')
 
 
-def input_fn():
-    images = tf.placeholder(tf.float32, shape=[1, None, None, 3], name='images')
-    labels = tf.placeholder(tf.int32, shape=[None, None], name='labels')
-    return images, labels
-
-
 def train(recover):
     """
     :param recover: bool, whether to recover from last run.
@@ -31,7 +25,7 @@ def train(recover):
     """
     with tf.Graph().as_default():
         global_step = tf.train.get_or_create_global_step()
-        net = fcn.FCN(input_fn,
+        net = fcn.FCN(fcn.input_fn,
                       n_classes=FLAGS['n_classes'],
                       lr=FLAGS['learning_rate'],
                       path=FLAGS['vgg16_model_path'],

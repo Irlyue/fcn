@@ -17,6 +17,12 @@ def _get_model(type_, path):
         raise NotImplemented
 
 
+def input_fn():
+    images = tf.placeholder(tf.float32, shape=[1, None, None, 3], name='images')
+    labels = tf.placeholder(tf.int64, shape=[None, None], name='labels')
+    return images, labels
+
+
 class FCN:
     def __init__(self, input_fn, n_classes, lr=1e-4, path=None, type_='fcn32', reg=None,
                  global_step=None, train=True):
@@ -38,8 +44,9 @@ class FCN:
         self.fcn = _get_model(type_, path)
         # first construct the FCN graph
         self.fcn.build(self.images, train=train, num_classes=n_classes)
-        self.loss_op = self.loss(reg)
-        self.train_op = self.train(lr)
+        if train:
+            self.loss_op = self.loss(reg)
+            self.train_op = self.train(lr)
 
     def train(self, lr):
         log.info('Building train operation...')
