@@ -1,3 +1,4 @@
+import os
 import json
 import fcn
 import time
@@ -38,7 +39,7 @@ def train(recover):
                       reg=FLAGS['reg'],
                       global_step=global_step)
 
-        data = inputs.load_data('data/dataset/img/', 'data/dataset/cls/')
+        data = inputs.load_data(FLAGS['data_image_path'], FLAGS['data_label_path'])
         log.info('Data loaded successfully, %d items in total!' % len(data))
 
         writer = tf.summary.FileWriter(FLAGS['train_dir'])
@@ -46,16 +47,24 @@ def train(recover):
         saver = tf.train.Saver()
 
         with tf.Session() as sess:
+            base_step = 0
             if recover:
                 log.info('Restoring model from last run...')
                 tic = time.time()
-                saver.restore(sess, FLAGS['train_dir'] + '\model.ckpt')
+                ckpt = tf.train.get_checkpoint_state(FLAGS['train_dir'])
+                if ckpt and ckpt.model_checkpoint_path:
+                    base_step = int(ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1])
+                    saver.restore(sess, ckpt.model_checkpoint_path)
+                    log.info('Successfully loaded model-%d' % base_step)
+                else:
+                    log.warning('No checkpoint file found!')
                 toc = time.time()
                 log.info('Done in %.3fs' % (toc - tic,))
             else:
                 tf.global_variables_initializer().run()
             log.info('Begin training...')
-            for step, (image, label) in enumerate(inputs.yield_one_example(data, FLAGS['n_loops'], True)):
+            for i, (image, label) in enumerate(inputs.yield_one_example(data, FLAGS['n_loops'], True)):
+                step = i + base_step
                 # span dim
                 image = image[None, :, :, :]
                 feed_dict = {net.images: image, net.labels: label}
@@ -66,7 +75,8 @@ def train(recover):
                 if step % FLAGS['save_every'] == 0:
                     log.info('Saving model in step %d...' % step)
                     tic = time.time()
-                    saver.save(sess, FLAGS['train_dir'] + '\model.ckpt')
+                    path = os.path.join(FLAGS['train_dir'], 'model')
+                    saver.save(sess, path, global_step=global_step)
                     toc = time.time()
                     log.info('Done in %.3f' % (toc - tic,))
 
